@@ -1,29 +1,67 @@
-name: Build and deploy portfolio
+name: Build production and v3 preview
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
   pages: write
   id-token: write
+
 concurrency:
   group: pages
   cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out current production website
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: production
+      - name: Check out v3 preview
+        uses: actions/checkout@v4
+        with:
+          ref: rebuild/v3
+          path: preview-source
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm run build
+          cache-dependency-path: |
+            production/package-lock.json
+            preview-source/package-lock.json
+      - name: Validate and build production website
+        working-directory: production
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run typecheck
+          npm run lint
+          npm run build
+          npm test
+      - name: Validate and build v3 preview
+        working-directory: preview-source
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run typecheck
+          npm run lint
+          npm run build:preview
+          npm run test:preview-output
+          npm test
+      - name: Assemble one Pages artifact
+        run: |
+          mkdir -p site
+          cp -a production/dist/. site/
+          mkdir -p site/preview
+          cp -a preview-source/dist-preview/. site/preview/
+          rm -f site/preview/CNAME
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: dist
+          path: site
   deploy:
     needs: build
     runs-on: ubuntu-latest

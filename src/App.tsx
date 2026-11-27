@@ -1,50 +1,33 @@
-import { MotionConfig } from "motion/react";
-import { Navigation } from "./components/layout/Navigation";
-import { Hero } from "./components/sections/Hero";
-import { About } from "./components/sections/About";
-import { Projects } from "./components/sections/Projects";
-import { Skills } from "./components/sections/Skills";
-import { Gaming } from "./components/sections/Gaming";
-import { Setup } from "./components/sections/Setup";
-import { Socials } from "./components/sections/Socials";
-import { GitHubShowcase } from "./components/sections/GitHubShowcase";
-import { Contact } from "./components/sections/Contact";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowUpRight, Check, ChevronRight, Clipboard, ExternalLink, Menu, Search, X } from "lucide-react/dist/cjs/lucide-react.js";
+import { navigation, site } from "./data/site";
 import { profile } from "./data/profile";
-export default function App() {
-  return (
-    <MotionConfig reducedMotion="user">
-      <a className="skip-link" href="#main">
-        Skip to content
-      </a>
-      <Navigation />
-      <main id="main">
-        <Hero />
-        <About />
-        <Projects />
-        {profile.githubShowcase && <GitHubShowcase />}
-        <Skills />
-        <Gaming />
-        <Setup />
-        <Socials />
-        <Contact />
-      </main>
-      <footer className="footer container">
-        <a className="brand" href="#home">
-          <span className="brand-mark">
-            f<span>.</span>
-          </span>
-          <span>
-            ItzRealFisher<span className="brand-dot">.</span>
-          </span>
-        </a>
-        <span>Made with curiosity in North Queensland.</span>
-        <span>
-          © {new Date().getFullYear()} Luke Fisher{" "}
-          <a href="#home" aria-label="Back to top">
-            ↑
-          </a>
-        </span>
-      </footer>
-    </MotionConfig>
-  );
-}
+import { archivedProjectNames, projectBySlug, projects } from "./data/projects";
+import { promotionBySlug, promotions } from "./data/promotions";
+import { socialBySlug, socials } from "./data/socials";
+import type { Project, Promotion, Social } from "./types";
+const internal=(p:string)=>p.startsWith("/");
+const base=import.meta.env.BASE_URL.replace(/\/$/,"");
+const preview=base === "/preview";
+function Meta({title,description}:{title:string;description:string}){useEffect(()=>{document.title=`${title} — ItzFisher`;document.querySelector('meta[name="description"]')?.setAttribute("content",description)},[title,description]);return null}
+function Button({href,children,quiet=false}:{href?:string;children:React.ReactNode;quiet?:boolean}){const c=`button ${quiet?"quiet":""}`;return href?<a className={c} href={href} target={internal(href)?undefined:"_blank"} rel="noreferrer">{children}<ArrowUpRight size={15}/></a>:<button className={c}>{children}</button>}
+function Layout({children}:{children:React.ReactNode}){const[open,setOpen]=useState(false);useEffect(()=>{if(!base)return;document.querySelectorAll<HTMLAnchorElement>('a[href^="/"]').forEach(a=>{const value=a.getAttribute("href")||"/";if(!value.startsWith(`${base}/`))a.setAttribute("href",`${base}${value}`)})},[]);return <><a className="skip" href="#content">Skip to content</a>{preview&&<div className="preview-banner">Preview version <span>·</span> <a href="https://www.itzfisher.org/">Return to the current website</a></div>}<header><a className="wordmark" href="/">ITZFISHER<span>®</span></a><button className="mobile-menu" aria-label="Toggle navigation" onClick={()=>setOpen(!open)}>{open?<X/>:<Menu/>}</button><nav className={open?"open":""}>{navigation.map(([n,u])=><a href={u} key={u}>{n}</a>)}</nav></header><main id="content">{children}</main><footer><span>© {new Date().getFullYear()} ItzFisher</span><span>Built for the long tail of side projects.</span><a href="/contact">Contact <ChevronRight size={14}/></a></footer></>}
+const Eyebrow=({children}:{children:React.ReactNode})=><p className="eyebrow">{children}</p>;
+function Status({value}:{value:string}){return <span className={`status ${value.toLowerCase().replaceAll(" ","-")}`}>{value}</span>}
+function ProjectLine({project}:{project:Project}){return <article className="line"><div><div className="line-top"><h3><a href={`/projects/${project.slug}`}>{project.name}</a></h3><Status value={project.status}/></div><p>{project.description}</p>{project.technologies&&<div className="tags">{project.technologies.map(x=><span key={x}>{x}</span>)}</div>}</div><a className="arrow" href={`/projects/${project.slug}`} aria-label={`View ${project.name}`}><ChevronRight/></a></article>}
+function Page({title,eyebrow,children}:{title:string;eyebrow?:string;children:React.ReactNode}){return <Layout><Meta title={title} description={`${title} — ${site.description}`}/><section className="page-head"><Eyebrow>{eyebrow||"ItzFisher"}</Eyebrow><h1>{title}</h1>{children}</section></Layout>}
+function Home(){return <Layout><Meta title="Independent developer" description={site.description}/><section className="intro"><Eyebrow>Independent hobby developer · Australia</Eyebrow><h1>Hey, I’m Fisher.</h1><p>{profile.bio}</p><div className="actions"><Button href="/projects">Browse projects</Button><Button href="/links" quiet>Find me online</Button></div></section><section><div className="section-heading"><div><Eyebrow>Selected work</Eyebrow><h2>Things I’ve made or am making.</h2></div><a href="/projects">All projects <ChevronRight size={15}/></a></div><div className="lines">{projects.filter(x=>x.featured).map(p=><ProjectLine key={p.slug} project={p}/>)}</div></section><section className="split"><div><Eyebrow>Developer hub</Eyebrow><h2>Source, releases and public repositories.</h2><p>Browse a live public GitHub index with a static fallback when GitHub is unavailable.</p><Button href="/dev">Open developer hub</Button></div><div><Eyebrow>Contributions & promotions</Eyebrow><h2>Projects worth a look.</h2><p>Personal work, contributions and third-party promotions are always clearly separated.</p><Button href="/partners" quiet>Explore partners</Button></div></section><section><div className="section-heading"><div><Eyebrow>Elsewhere</Eyebrow><h2>Links and contact.</h2></div><a href="/contact">Contact <ChevronRight size={15}/></a></div><div className="social-grid">{socials.filter(s=>s.verified).slice(0,6).map(s=><a key={s.slug} href={`/${s.slug}`}><span>{s.platform}</span><ChevronRight size={16}/></a>)}</div></section></Layout>}
+function About(){return <Page title="About" eyebrow="A little context"><p className="lead">{profile.bio}</p><p>This is an intentionally low-maintenance home for work that survives beyond the momentum of any one project. Hobby projects may not receive regular updates or ongoing support.</p></Page>}
+function Projects(){const[q,setQ]=useState("");const[s,setS]=useState("All");const result=useMemo(()=>projects.filter(p=>(s==="All"||p.status===s)&&`${p.name} ${p.description} ${p.category}`.toLowerCase().includes(q.toLowerCase())),[q,s]);return <Layout><Meta title="Projects" description="Personal development projects by Fisher."/><section className="page-head"><Eyebrow>Personal portfolio</Eyebrow><h1>Projects.</h1><p className="lead">A record of personal software, Minecraft and web projects. These are hobby projects and may not receive regular updates or support.</p></section><section className="toolbar"><label><Search size={16}/><input aria-label="Search projects" value={q} onChange={e=>setQ(e.target.value)} placeholder="Search projects"/></label><select aria-label="Filter project status" value={s} onChange={e=>setS(e.target.value)}>{["All","Active","Released","Experimental","On Hold","Archived","Unknown"].map(x=><option key={x}>{x}</option>)}</select></section><section className="lines">{result.map(p=><ProjectLine key={p.slug} project={p}/>)||<p>No projects match.</p>}</section><section className="archive"><Eyebrow>Historical archive</Eyebrow><h2>Older project names</h2><p>{archivedProjectNames.join(" · ")}</p></section></Layout>}
+function ProjectPage({project}:{project:Project}){return <Page title={project.name} eyebrow={`${project.category} · ${project.status}`}><p className="lead">{project.description}</p>{project.maintenanceNote&&<p className="notice">{project.maintenanceNote}</p>}{project.technologies&&<div className="tags">{project.technologies.map(x=><span key={x}>{x}</span>)}</div>}<div className="actions">{project.github&&<Button href={project.github}>Source code</Button>}{project.website&&<Button href={project.website} quiet>Visit website</Button>}{project.downloads&&<Button href={project.downloads}>Downloads</Button>}{project.documentation&&<Button href={project.documentation}>Documentation</Button>}</div></Page>}
+type Repo={id:number;name:string;description:string|null;html_url:string;language:string|null;archived:boolean;fork:boolean};
+function Dev(){const[r,setR]=useState<Repo[]|null>(null);const[msg,setMsg]=useState("Loading public repositories…");const[q,setQ]=useState("");useEffect(()=>{const c=new AbortController(),t=setTimeout(()=>c.abort(),6000);fetch(site.githubApi,{signal:c.signal,headers:{Accept:"application/vnd.github+json"}}).then(x=>{if(!x.ok)throw Error();return x.json()}).then((x:Repo[])=>{setR(x.filter(a=>!a.fork));setMsg("")}).catch(()=>setMsg("GitHub is unavailable right now. Showing static portfolio content instead.")).finally(()=>clearTimeout(t));return()=>{c.abort();clearTimeout(t)}},[]);const shown=(r||[]).filter(x=>`${x.name} ${x.description||""} ${x.language||""}`.toLowerCase().includes(q.toLowerCase()));return <Layout><Meta title="Developer hub" description="Public source code and releases from ItzRealFisher."/><section className="page-head"><Eyebrow>Developer hub</Eyebrow><h1>Public repositories.</h1><p className="lead">Live, credential-free GitHub data with timeouts, public-only filtering and a static fallback.</p></section><section className="toolbar"><label><Search size={16}/><input aria-label="Search repositories" value={q} onChange={e=>setQ(e.target.value)} placeholder="Filter repositories"/></label></section>{msg&&<p className="notice">{msg}</p>}<section className="lines">{shown.map(x=><article className="line" key={x.id}><div><div className="line-top"><h3><a href={x.html_url} target="_blank" rel="noreferrer">{x.name}</a></h3>{x.archived&&<Status value="Archived"/>}</div><p>{x.description||"No repository description provided."}</p>{x.language&&<div className="tags"><span>{x.language}</span></div>}</div><a className="arrow" href={x.html_url} target="_blank" rel="noreferrer"><ExternalLink/></a></article>)}</section><section className="archive"><Eyebrow>Static fallback</Eyebrow><h2>Portfolio source references</h2><p>The Projects section stays useful if API limits or network failures occur.</p><Button href="/projects" quiet>Browse projects</Button></section></Layout>}
+function Downloads(){return <Page title="Downloads" eyebrow="Software & releases"><p className="lead">Only confirmed downloads are listed here. Source links are available on individual projects when supplied.</p><p className="notice">No verified direct downloads are configured yet.</p></Page>}
+function Partners(){return <Layout><Meta title="Partners" description="Contributions and third-party promotions."/><section className="page-head"><Eyebrow>Contributions & promoted work</Eyebrow><h1>Partners.</h1><p className="lead">These are not all personal projects. Attribution is explicit so ownership and involvement are clear.</p></section><section className="lines">{promotions.filter(x=>x.enabled).map(p=><article className="line" key={p.slug}><div><Eyebrow>{p.category}</Eyebrow><h3><a href={`/${p.slug}`}>{p.name}</a></h3><p>{p.description}</p><small>{p.attribution}</small></div><a className="arrow" href={`/${p.slug}`}><ChevronRight/></a></article>)}</section></Layout>}
+function PromotionPage({promotion}:{promotion:Promotion}){return <Page title={promotion.name} eyebrow={promotion.category}><p className="lead">{promotion.description}</p><p className="notice">{promotion.attribution}</p>{promotion.url?<Button href={promotion.url}>Visit official website</Button>:<p className="notice">An official destination and visual assets have not been supplied for this promotion.</p>}</Page>}
+function Advertise(){return <Page title="Advertise & collaborate" eyebrow="Simple, non-intrusive placement"><p className="lead">Interested in a relevant project placement or collaboration? Get in touch with context about your project and what you’re looking for.</p><p>Promotions are only shown when enabled in configuration. Paid sponsorships, if any, are disclosed; unpaid promotions are never labelled as sponsored.</p><Button href="/contact">Contact Fisher</Button></Page>}
+function SocialPage({social}:{social:Social}){const[copied,setCopied]=useState("");const copy=async(v:string,l:string)=>{await navigator.clipboard?.writeText(v);setCopied(l);setTimeout(()=>setCopied(""),1600)};const dest=social.verified?social.url:undefined;return <Page title={social.platform} eyebrow="ItzFisher links"><div className="platform-mark">{social.platform[0]}</div><p className="lead">{social.username}</p><p>{social.description}</p>{social.category==="Support"&&<p className="notice">Support is entirely voluntary and never required.</p>}<div className="actions">{dest&&<Button href={dest}>Open {social.platform}</Button>}<button className="button quiet" onClick={()=>copy(social.username,"Username copied")}><Clipboard size={15}/>Copy username</button>{dest&&<button className="button quiet" onClick={()=>copy(dest,"Link copied")}><Clipboard size={15}/>Copy direct link</button>}<Button href="/links" quiet>All links</Button></div>{copied&&<p aria-live="polite" className="copied"><Check size={15}/>{copied}</p>}{!dest&&<p className="notice">The candidate URL is intentionally not active until it is verified.</p>}</Page>}
+function Links(){return <Layout><Meta title="All links" description="Verified ItzFisher social and support links."/><section className="page-head"><Eyebrow>ItzFisher online</Eyebrow><h1>All links.</h1><p className="lead">Only verified destinations have active outbound buttons.</p></section><section className="social-list">{socials.map(s=><a key={s.slug} href={`/${s.slug}`}><div><strong>{s.platform}</strong><span>{s.username}</span></div><ChevronRight size={18}/></a>)}</section></Layout>}
+function Contact(){return <Page title="Contact" eyebrow="Get in touch"><p className="lead">The most reliable way to reach me is through Discord.</p><Button href="/discord">Open Discord profile</Button><p className="notice">No public email address is currently configured.</p></Page>}
+function NotFound(){return <Page title="Not found" eyebrow="404"><p className="lead">That page doesn’t exist or has moved.</p><Button href="/">Return home</Button></Page>}
+function resolve(){const pathname=location.pathname.replace(/\/$/,"")||"/";const p=base&&pathname.startsWith(base)?pathname.slice(base.length)||"/":pathname;if(p==="/")return <Home/>;const simple:Record<string,React.ReactNode>={"/about":<About/>,"/projects":<Projects/>,"/dev":<Dev/>,"/downloads":<Downloads/>,"/partners":<Partners/>,"/advertise":<Advertise/>,"/links":<Links/>,"/contact":<Contact/>};if(simple[p])return simple[p];if(p.startsWith("/projects/")){const x=projectBySlug(p.split("/")[2]);return x?<ProjectPage project={x}/>:<NotFound/>}const promo=promotionBySlug(p.slice(1));if(promo)return <PromotionPage promotion={promo}/>;const social=socialBySlug(p.slice(1));return social?<SocialPage social={social}/>:<NotFound/>}export default function App(){return resolve()}
