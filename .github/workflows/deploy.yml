@@ -51,6 +51,7 @@ jobs:
           npm run lint
           npm run build:preview
           npm run test:preview-output
+          npm run build
           npm test
       - name: Assemble one Pages artifact
         run: |
